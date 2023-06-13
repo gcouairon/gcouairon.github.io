@@ -17,7 +17,7 @@ layout: default
 			{% if _post.author -%}{{- _post.author }} | {% endif %}
 			{{- _post.date | date_to_long_string -}}
 		{%- endcapture -%}
-		{%- capture _excerpt -%}<div>{{post.content | strip_html | truncate: 400 }}{%- endcapture -%}</div>
+		{%- capture _excerpt -%}<div>{{post.content | strip_html | truncate: 400 }}</div>{%- endcapture -%}
 		{%- capture _link -%}<a href="{{- _post.url | absolute_url -}}">read more</a>{%- endcapture -%}
 		{%- assign _content = _excerpt | append: _link -%}
 		{%- include section.html title=_title subtitle=_subtitle content=_content -%}

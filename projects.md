@@ -1,6 +1,5 @@
 ---
-title: Projects
-subtitle: "a list of personal projects"
+title: Personal Projects
 layout: "page"
 icon: fa-book
 order: 3

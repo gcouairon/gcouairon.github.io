@@ -2,3 +2,8 @@
 *.gem
 .sass-cache
 Gemfile.lock
+.bundle
+gcouairon.code-workspace
+Gemfile
+vendor
+

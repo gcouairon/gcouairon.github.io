@@ -1,0 +1,455 @@
+---
+layout: post
+title: Deep Segmentation of Road Images
+date:   2017-01-01
+navigation: True
+logo: 'assets/images/ghost.png'
+cover: 'projects/roadnet_images/background.png'
+tags: projects
+subclass: 'post'
+categories: 'phazcode'
+---
+
+<body for="html-export">
+  <div class="mume markdown-preview   ">
+<p>The market of autonomous cars is soaring and most car companies are devoting an increasing part of their research &amp; development budget to autonomous driving. It might only be a matter of time before humans themselves will be forbidden the right to drive, but there are major ethic questions along the way. These have a chance to be solved only if autonomous vehicles are significantly more secure than humans. How can we make sure that these cars won't pose a threat to pedestrians ? That is why a car should be able to recognize its environment with a high precision level. We will try and model this problem, focusing on images taken with a camera from inside the car. Our aim is to detect pedestrians on an image, and more broadly, to classify pixels of a road image in different categories (sky, building, pedestrian...).</p>
+<p><em>I would like to warmly thank Mr Le Saux, Mr Guerry and Mr Vanel for guiding me in this fascinating project</em>.</p>
+<h3 class="mume-header" id="dataset">Dataset</h3>
+
+<p>We use for training and evaluation the <a href="https://www.cityscapes-dataset.com/">Cityscape Dataset</a>, a modern database of road images for more than 20 european cities. Each image is taken from inside a vehicle, and each pixel is annotated as belonging to one of the following classes:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Group</th>
+<th style="text-align:center">Classes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">Flat</td>
+<td style="text-align:center">Road, Sidewalk, Parking, Rail track</td>
+</tr>
+<tr>
+<td style="text-align:center">Human</td>
+<td style="text-align:center">Person, Driver</td>
+</tr>
+<tr>
+<td style="text-align:center">Vehicle</td>
+<td style="text-align:center">Car, Truck, Bus, On Rails, MotorCycle, Bicyle, Caravan, Trailer</td>
+</tr>
+<tr>
+<td style="text-align:center">Construction</td>
+<td style="text-align:center">Building, Wall, Fence, Guard Rail, Bridge, Tunnel</td>
+</tr>
+<tr>
+<td style="text-align:center">Object</td>
+<td style="text-align:center">Pole, Pole Group, Traffic Sign, Traffic Light</td>
+</tr>
+<tr>
+<td style="text-align:center">Nature</td>
+<td style="text-align:center">Vegetation, Terrain</td>
+</tr>
+<tr>
+<td style="text-align:center">Sky</td>
+<td style="text-align:center">Sky</td>
+</tr>
+<tr>
+<td style="text-align:center">Void</td>
+<td style="text-align:center">Ground, Dynamic, Static</td>
+</tr>
+</tbody>
+</table>
+<p>There are 5000 images with fine annotations and 20000 images with coarse annotations that we leave for future work. The images, originally of size 1024 x 2048, have been rescaled to 240 x 480 due to computational limitations.</p>
+<p>The labels appear in the dataset with different frequencies:</p>
+<img src="/projects/roadnet_images/label_f.png">
+<blockquote>
+<p>Frequency of appearance of each label in the database</p>
+</blockquote>
+<h3 class="mume-header" id="visualisation">Visualisation</h3>
+
+<p>We will represent labelled road images by attributing a color to each class. We use the following color code:</p>
+<img src="/projects/roadnet_images/colors.png">
+<blockquote>
+<p>Color code for the class labels</p>
+</blockquote>
+<p>Therefore, we can visualize a labelled image by coloring each pixel with the color corresponding to its label. Here is an example:</p>
+<img src="/projects/roadnet_images/ex1l1.png">
+<blockquote>
+<p>Photo (Left), Colored Labels (Right)</p>
+</blockquote>
+<p>We will use deep neural networks to set a label to each pixel of an image. We can either work at a local scale, by looking at the close surroundings of each pixel to compute its label (Sliding window), or work at a global scale (autoencoder) to take into account the structure of the whole image.</p>
+<h3 class="mume-header" id="sliding-window">Sliding Window</h3>
+
+<h4 class="mume-header" id="how-it-works">How it works</h4>
+
+<p>In this method, we train a classifier that takes as input small frames of size 64 x 64, and computes a label for the frame. To do so, we compute for each image in the dataset, overlapping frames of size 64 x 64, normalize them (RGB channels) and save them in a new training dataset. For instance we take, for <span class="katex"><span class="katex-mathml"><math><semantics><mrow><msub><mi>r</mi><mn>1</mn></msub><mo>∈</mo><msup><mi mathvariant="double-struck">N</mi><mo>∗</mo></msup></mrow><annotation encoding="application/x-tex">r_1 \in \mathbb{N}^*</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.68889em;"></span><span class="strut bottom" style="height:0.83889em;vertical-align:-0.15em;"></span><span class="base"><span class="mord"><span class="mord mathit" style="margin-right:0.02778em;">r</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.02778em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span><span class="mord rule" style="margin-right:0.2777777777777778em;"></span><span class="mrel">∈</span><span class="mord rule" style="margin-right:0.2777777777777778em;"></span><span class="mord"><span class="mord"><span class="mord mathbb">N</span></span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.688696em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mbin mtight">∗</span></span></span></span></span></span></span></span></span></span></span>, <span class="katex"><span class="katex-mathml"><math><semantics><mrow><msub><mi>r</mi><mn>2</mn></msub><mo>∈</mo><msup><mi mathvariant="double-struck">N</mi><mo>∗</mo></msup></mrow><annotation encoding="application/x-tex">r_2 \in \mathbb{N}^*</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.68889em;"></span><span class="strut bottom" style="height:0.83889em;vertical-align:-0.15em;"></span><span class="base"><span class="mord"><span class="mord mathit" style="margin-right:0.02778em;">r</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.02778em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span><span class="mord rule" style="margin-right:0.2777777777777778em;"></span><span class="mrel">∈</span><span class="mord rule" style="margin-right:0.2777777777777778em;"></span><span class="mord"><span class="mord"><span class="mord mathbb">N</span></span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.688696em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mbin mtight">∗</span></span></span></span></span></span></span></span></span></span></span>, the family of frames<br>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math><semantics><mrow><msub><mi>F</mi><mrow><mi>i</mi><mo separator="true">,</mo><mi>j</mi></mrow></msub><mo>=</mo><mi>I</mi><mo>[</mo><mi>i</mi><mo>∗</mo><msub><mi>r</mi><mn>1</mn></msub><mo>:</mo><mi>i</mi><mo>∗</mo><msub><mi>r</mi><mn>1</mn></msub><mo>+</mo><mn>6</mn><mn>4</mn><mo separator="true">,</mo><mi>j</mi><mo>∗</mo><msub><mi>r</mi><mn>2</mn></msub><mo>:</mo><mi>j</mi><mo>∗</mo><msub><mi>r</mi><mn>2</mn></msub><mo>+</mo><mn>6</mn><mn>4</mn><mo>]</mo></mrow><annotation encoding="application/x-tex">F_{i, j} = I[i*r_1:i*r_1+64, j*r_2:j*r_2+64]</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.75em;"></span><span class="strut bottom" style="height:1.036108em;vertical-align:-0.286108em;"></span><span class="base"><span class="mord"><span class="mord mathit" style="margin-right:0.13889em;">F</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.311664em;"><span style="top:-2.5500000000000003em;margin-left:-0.13889em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathit mtight">i</span><span class="mpunct mtight">,</span><span class="mord mathit mtight" style="margin-right:0.05724em;">j</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.286108em;"></span></span></span></span></span><span class="mord rule" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mord rule" style="margin-right:0.2777777777777778em;"></span><span class="mord mathit" style="margin-right:0.07847em;">I</span><span class="mopen">[</span><span class="mord mathit">i</span><span class="mord rule" style="margin-right:0.2222222222222222em;"></span><span class="mbin">∗</span><span class="mord rule" style="margin-right:0.2222222222222222em;"></span><span class="mord"><span class="mord mathit" style="margin-right:0.02778em;">r</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.02778em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span><span class="mord rule" style="margin-right:0.2777777777777778em;"></span><span class="mrel">:</span><span class="mord rule" style="margin-right:0.2777777777777778em;"></span><span class="mord mathit">i</span><span class="mord rule" style="margin-right:0.2222222222222222em;"></span><span class="mbin">∗</span><span class="mord rule" style="margin-right:0.2222222222222222em;"></span><span class="mord"><span class="mord mathit" style="margin-right:0.02778em;">r</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.02778em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span><span class="mord rule" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mord rule" style="margin-right:0.2222222222222222em;"></span><span class="mord">6</span><span class="mord">4</span><span class="mpunct">,</span><span class="mord rule" style="margin-right:0.16666666666666666em;"></span><span class="mord mathit" style="margin-right:0.05724em;">j</span><span class="mord rule" style="margin-right:0.2222222222222222em;"></span><span class="mbin">∗</span><span class="mord rule" style="margin-right:0.2222222222222222em;"></span><span class="mord"><span class="mord mathit" style="margin-right:0.02778em;">r</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.02778em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span><span class="mord rule" style="margin-right:0.2777777777777778em;"></span><span class="mrel">:</span><span class="mord rule" style="margin-right:0.2777777777777778em;"></span><span class="mord mathit" style="margin-right:0.05724em;">j</span><span class="mord rule" style="margin-right:0.2222222222222222em;"></span><span class="mbin">∗</span><span class="mord rule" style="margin-right:0.2222222222222222em;"></span><span class="mord"><span class="mord mathit" style="margin-right:0.02778em;">r</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.02778em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span><span class="mord rule" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mord rule" style="margin-right:0.2222222222222222em;"></span><span class="mord">6</span><span class="mord">4</span><span class="mclose">]</span></span></span></span></span></p>
+<p>After training, we can segment a whole image in the following manner: first, we define overlapping frames of the image.</p>
+<p>Each frame is then labelled with the classifier, which let us assign the frame's label to every pixel in the frame. Each pixel receives many labels (because of overlapping frames), so we use a majority vote to set the pixels' labels.</p>
+<p>For our classifier, we use the LENET architecture :</p>
+<div class="mermaid">graph LR
+A("Conv (50)")
+B("Conv (100)")
+C("Dense (1000)")
+D("Dense (8)")
+Input --> A
+A --> M(MaxPooling)
+M --> B
+B --> M2(MaxPooling)
+M2 --> C
+C --> D
+style A fill: #ddaaaa
+style B fill: #ddaaaa
+style C fill: #aaddaa
+style D fill: #aaddaa
+
+</div><blockquote>
+<p>The LENET architecture. Activations are not shown.</p>
+</blockquote>
+<p>This network is composed of convolutional layers that detect patterns in the image, of MaxPooling Layers that downsample the image to compress information, and of regular densely connected layers.</p>
+<p>Computing the training set of 64 x 64 steps is a delicate step and conditions the efficacy of the neural network.</p>
+<p>We choose to consider <span class="katex"><span class="katex-mathml"><math><semantics><mrow><msub><mi>r</mi><mn>1</mn></msub><mo>=</mo><mn>2</mn><mn>0</mn><mo separator="true">,</mo><msub><mi>r</mi><mn>2</mn></msub><mo>=</mo><mn>2</mn><mn>0</mn></mrow><annotation encoding="application/x-tex">r_1 = 20, r_2 = 20</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.64444em;"></span><span class="strut bottom" style="height:0.8388800000000001em;vertical-align:-0.19444em;"></span><span class="base"><span class="mord"><span class="mord mathit" style="margin-right:0.02778em;">r</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.02778em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span><span class="mord rule" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mord rule" style="margin-right:0.2777777777777778em;"></span><span class="mord">2</span><span class="mord">0</span><span class="mpunct">,</span><span class="mord rule" style="margin-right:0.16666666666666666em;"></span><span class="mord"><span class="mord mathit" style="margin-right:0.02778em;">r</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.02778em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span><span class="mord rule" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mord rule" style="margin-right:0.2777777777777778em;"></span><span class="mord">2</span><span class="mord">0</span></span></span></span> in the family of frames defined above. The goal is then to assign a unique label to each frame.<br>
+We adopted the following principle: If at the center of the frame, the proportion of pixels assigned to a specific group <span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>g</mi></mrow><annotation encoding="application/x-tex">g</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.43056em;"></span><span class="strut bottom" style="height:0.625em;vertical-align:-0.19444em;"></span><span class="base"><span class="mord mathit" style="margin-right:0.03588em;">g</span></span></span></span> is higher than a threshold, then the frame is considered to be a sample of class <span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>g</mi></mrow><annotation encoding="application/x-tex">g</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.43056em;"></span><span class="strut bottom" style="height:0.625em;vertical-align:-0.19444em;"></span><span class="base"><span class="mord mathit" style="margin-right:0.03588em;">g</span></span></span></span>. We chose different thresholds for different classes and consider an order in which the classes must be examined.</p>
+<p>Say that we have a list <code>ordered_labels</code> of labels ordered by decreasing importance (for instance pedestrians first and void last), and a list of thresholds <code>attribution_label_filter</code>. We can apply the following algorithm :</p>
+<ul>
+<li>For l in ordered_labels :
+<ul>
+<li>center = frame[12:-12, 12:-12]</li>
+<li>filter = attribution_label_filter[l]<br>
+If the percentage of pixels of <code>center</code> that are labelled <code>class</code> is higher than <code>filter</code>, then we assign the label <code>class</code> to <code>frame</code>.<br>
+If no class verifies this condition, then this <code>frame</code> is not kept in the training set.</li>
+</ul>
+</li>
+</ul>
+<p>It means that for a frame to be labelled with label <span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>l</mi></mrow><annotation encoding="application/x-tex">l</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.69444em;"></span><span class="strut bottom" style="height:0.69444em;vertical-align:0em;"></span><span class="base"><span class="mord mathit" style="margin-right:0.01968em;">l</span></span></span></span>, the proportion of pixels in its center is lower than the thresholds associated with classes more important than <span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>l</mi></mrow><annotation encoding="application/x-tex">l</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.69444em;"></span><span class="strut bottom" style="height:0.69444em;vertical-align:0em;"></span><span class="base"><span class="mord mathit" style="margin-right:0.01968em;">l</span></span></span></span>.</p>
+<p>Why don't we chose the same threshold for all labels ? The fact is, it is very easy to obtain samples of sky because images often display large regions of pixels labelled &quot;sky&quot;. On the other hand, pedestrians are much less represented in the original images and will often occupy few pixels in an image. It is critical to set a low threshold for pedestrians in order to detect people that are quite far from the car, while it is not necessary to detect all frames containing more than 50% of sky. We can however keep those sky frames with a low probability to still allow for sky border detection.</p>
+<p>We determine the importance order for our labels by answering the question: which labels are more important to detect ?</p>
+<p>For the <code>filter_attribution_label</code> parameter, experimental tests allow us to verify if we obtain a sufficiently high number of relevant samples for each class.</p>
+<p>We considered the following order, with filter thresholds :</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">#</th>
+<th style="text-align:center">1</th>
+<th style="text-align:center">2</th>
+<th style="text-align:center">3</th>
+<th style="text-align:center">4</th>
+<th style="text-align:center">5</th>
+<th style="text-align:center">6</th>
+<th style="text-align:center">7</th>
+<th style="text-align:center">8</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center"><em>Class</em></td>
+<td style="text-align:center">human</td>
+<td style="text-align:center">vehicle</td>
+<td style="text-align:center">object</td>
+<td style="text-align:center">construction</td>
+<td style="text-align:center">nature</td>
+<td style="text-align:center">sky</td>
+<td style="text-align:center">ground</td>
+<td style="text-align:center">void</td>
+</tr>
+<tr>
+<td style="text-align:center"><em>Threshold</em></td>
+<td style="text-align:center">20%</td>
+<td style="text-align:center">75%</td>
+<td style="text-align:center">40%</td>
+<td style="text-align:center">80%</td>
+<td style="text-align:center">70%</td>
+<td style="text-align:center">50%</td>
+<td style="text-align:center">80%</td>
+<td style="text-align:center">50%</td>
+</tr>
+</tbody>
+</table>
+<p>The parameters of over-represented labels (sky, ground, construction) are left to a sufficiently low value to allow for diversity. We can afterwards choose the size of the dataset for each class.</p>
+<p>Here are a few examples of (RGB normalized) images for each class:</p>
+<img src="/projects/roadnet_images/frames.png">
+<h4 class="mume-header" id="accuracy">Accuracy</h4>
+
+<p>The sliding window method has been used with a LENET architecture and a dataset of 8000 samples (1000 for each class). It then has been evaluated on labelling whole images, by looking at the percentage of well labelled pixels.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Class</th>
+<th style="text-align:center">Train Accuracy</th>
+<th style="text-align:center">Test Accuracy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">Void</td>
+<td style="text-align:center">40.3%</td>
+<td style="text-align:center">14.1%</td>
+</tr>
+<tr>
+<td style="text-align:center">Ground</td>
+<td style="text-align:center">63.5%</td>
+<td style="text-align:center">60.0%</td>
+</tr>
+<tr>
+<td style="text-align:center">Construction</td>
+<td style="text-align:center">35.7%</td>
+<td style="text-align:center">29.6%</td>
+</tr>
+<tr>
+<td style="text-align:center">Object</td>
+<td style="text-align:center">33.3%</td>
+<td style="text-align:center">28.6%</td>
+</tr>
+<tr>
+<td style="text-align:center">Nature</td>
+<td style="text-align:center">55.1%</td>
+<td style="text-align:center">48.2%</td>
+</tr>
+<tr>
+<td style="text-align:center">Sky</td>
+<td style="text-align:center">90.1%</td>
+<td style="text-align:center">83.4%</td>
+</tr>
+<tr>
+<td style="text-align:center">Human</td>
+<td style="text-align:center">48.3%</td>
+<td style="text-align:center">35.3%</td>
+</tr>
+<tr>
+<td style="text-align:center">Vehicle</td>
+<td style="text-align:center">54.8%</td>
+<td style="text-align:center">44.7%</td>
+</tr>
+<tr>
+<td style="text-align:center">Mean</td>
+<td style="text-align:center">52.6%</td>
+<td style="text-align:center">43.0%</td>
+</tr>
+</tbody>
+</table>
+<p>The accuracy gap between train and test images is a measure of how complex and well defined each class is. For instance, &quot;Void&quot; is broad, default class, with a large train-test accuracy gap.</p>
+<p>With a mean test accuracy of 43%, this model correctly classifies about 43% of all pixels in test images.</p>
+<h4 class="mume-header" id="visualisation-1">Visualisation</h4>
+
+<p>We take three images from the test set, label each pixel using the LENET network and compute a colored image from the labels. Below are the results: in each column, we show the original image, the (colored) ground truth and the colored prediction.</p>
+<img src="/projects/roadnet_images/vgg_viz.png">
+<p>We can make many observations on these images.</p>
+<p>First, the overall logic of road images is here: road in the bottom, mainly buildings and sky in the top.<br>
+Pedestrians are well detected, but many pixels are classified as pedestrians whereas they are just close to pedestrians, which is the reason for those large red areas around the persons. The reason for this is that we chose a threshold filter for pedestrian relatively low, yielding many frames with only a few &quot;pedestrians pixels&quot; being classified as pedestrians. Therefore, during the analysis of the image, the surroundings of a pedestrian will also be classified as pedestrian.</p>
+<p>We note that many &quot;building&quot; pixels are classified as &quot;car&quot; pixels: the algorithm has trouble differencing the two classes.</p>
+<p>A strong difficulty in the classification by sliding window is that the ground truth presented above is not analyzed as ground truth for our database creation method. To demonstrate this, we can apply a voting system to the ground truth image, for each frame of size 64*64 and then move the frames by 20 pixels each time, which gives the following result:</p>
+<img src="/projects/roadnet_images/bad.png">
+<blockquote>
+<p>Left: Photo, Right: Voting system applied on the ground truth</p>
+</blockquote>
+<p>The pedestrian on the left and the car are eliminated from the picture by this voting system. Hence, this method has inevitable limitations.</p>
+<h3 class="mume-header" id="direct-segmentation-via-autoencoder">Direct Segmentation via AutoEncoder</h3>
+
+<p>Here, we will directly map an input image to its label image, through a deep Auto Encoder.</p>
+<img src="/projects/roadnet_images/ae.png">
+<blockquote>
+<p>Network Architecture of an Auto Encoder</p>
+</blockquote>
+<p>The network encodes each image into a smaller vector space (the latent space) through pooling layers and then decode it through upsampling layers.<br>
+By training the neural network, it will discard all unnecessary information about the images and only keep features that are relevant for segmenting the images into classes, because the latent space is too small too retain all the information in the images.</p>
+<p>Here is the exact architecture we implemented, with a total number of 1,330,248 parameters.</p>
+<div class="mermaid">graph LR
+A("Conv(64)")
+B("MaxPooling")
+C("Conv(128)")
+D("MaxPooling")
+E("Conv(256)")
+
+
+Input --> A
+A --> B
+B --> C
+C --> D
+D --> E
+
+F("Conv(256)")
+G("UpSampling")
+H("Conv(128)")
+I("UpSampling")
+J("Conv(64)")
+K("Dense(8)")
+F --> G
+G --> H
+H --> I
+I --> J
+J --> K
+
+style A fill: #ddaaaa
+style C fill: #ddaaaa
+style E fill: #ddaaaa
+style F fill: #ddaaaa
+style H fill: #ddaaaa
+style J fill: #ddaaaa
+style K fill: #aaddaa
+
+</div><p>Due to technical constraints, I was not able to use the complete CityScape dataset : The training database consists of 690 images taken in Zurich, Erfurt, Bochum, Dusseldorf and Weimar. The test database consists of 365 images taken in Strasbourg.</p>
+<p>We trained the network with the adadelta optimizer, with early stopping to prevent overfitting. We also took into account the fact that all classes do not contain the same number of pixels : they are <em>imbalanced</em>. To tackle this issue, we do a reweighting in the loss function: the bigger the weight for class <span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>c</mi></mrow><annotation encoding="application/x-tex">c</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.43056em;"></span><span class="strut bottom" style="height:0.43056em;vertical-align:0em;"></span><span class="base"><span class="mord mathit">c</span></span></span></span>, the more the loss function associated to class <span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>c</mi></mrow><annotation encoding="application/x-tex">c</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.43056em;"></span><span class="strut bottom" style="height:0.43056em;vertical-align:0em;"></span><span class="base"><span class="mord mathit">c</span></span></span></span> contributes in the total loss function. The weights are computed as the inverse of the frequency of each class in the training set.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Class</th>
+<th style="text-align:center">Void</th>
+<th style="text-align:center">Ground</th>
+<th style="text-align:center">Building</th>
+<th style="text-align:center">Object</th>
+<th style="text-align:center">Nature</th>
+<th style="text-align:center">Sky</th>
+<th style="text-align:center">Human</th>
+<th style="text-align:center">Vehicle</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center"><em>Weight</em></td>
+<td style="text-align:center">12</td>
+<td style="text-align:center">2</td>
+<td style="text-align:center">4</td>
+<td style="text-align:center">52</td>
+<td style="text-align:center">6</td>
+<td style="text-align:center">30</td>
+<td style="text-align:center">138</td>
+<td style="text-align:center">14</td>
+</tr>
+</tbody>
+</table>
+<p>The precision is therefore computed as a weighted mean on all classes.</p>
+<h4 class="mume-header" id="accuracy-results">Accuracy Results</h4>
+
+<p>The raw results is a precision of 88.5% for the training set and 84.35% for the test set.</p>
+<p>However, we can push our analysis further with other performance indicators.<br>
+In classification, we call true positive for class <span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>i</mi></mrow><annotation encoding="application/x-tex">i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.65952em;"></span><span class="strut bottom" style="height:0.65952em;vertical-align:0em;"></span><span class="base"><span class="mord mathit">i</span></span></span></span> (<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>T</mi><msub><mi>P</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">TP_i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.68333em;"></span><span class="strut bottom" style="height:0.83333em;vertical-align:-0.15em;"></span><span class="base"><span class="mord mathit" style="margin-right:0.13889em;">T</span><span class="mord"><span class="mord mathit" style="margin-right:0.13889em;">P</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.31166399999999994em;"><span style="top:-2.5500000000000003em;margin-left:-0.13889em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathit mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span></span>) the examples correctly labelled with class <span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>i</mi></mrow><annotation encoding="application/x-tex">i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.65952em;"></span><span class="strut bottom" style="height:0.65952em;vertical-align:0em;"></span><span class="base"><span class="mord mathit">i</span></span></span></span>. The false positive (<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>F</mi><msub><mi>P</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">FP_i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.68333em;"></span><span class="strut bottom" style="height:0.83333em;vertical-align:-0.15em;"></span><span class="base"><span class="mord mathit" style="margin-right:0.13889em;">F</span><span class="mord"><span class="mord mathit" style="margin-right:0.13889em;">P</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.31166399999999994em;"><span style="top:-2.5500000000000003em;margin-left:-0.13889em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathit mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span></span>) are those incorrectly classified <span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>i</mi></mrow><annotation encoding="application/x-tex">i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.65952em;"></span><span class="strut bottom" style="height:0.65952em;vertical-align:0em;"></span><span class="base"><span class="mord mathit">i</span></span></span></span>, and the false negatives (<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>F</mi><msub><mi>N</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">FN_i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.68333em;"></span><span class="strut bottom" style="height:0.83333em;vertical-align:-0.15em;"></span><span class="base"><span class="mord mathit" style="margin-right:0.13889em;">F</span><span class="mord"><span class="mord mathit" style="margin-right:0.10903em;">N</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.31166399999999994em;"><span style="top:-2.5500000000000003em;margin-left:-0.10903em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathit mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span></span>) are the examples that should have be classified as <span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>i</mi></mrow><annotation encoding="application/x-tex">i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.65952em;"></span><span class="strut bottom" style="height:0.65952em;vertical-align:0em;"></span><span class="base"><span class="mord mathit">i</span></span></span></span>.</p>
+<ul>
+<li>The precision index for class <span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>i</mi></mrow><annotation encoding="application/x-tex">i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.65952em;"></span><span class="strut bottom" style="height:0.65952em;vertical-align:0em;"></span><span class="base"><span class="mord mathit">i</span></span></span></span> is computed as <span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>T</mi><msub><mi>P</mi><mi>i</mi></msub><mi mathvariant="normal">/</mi><mo>(</mo><mi>T</mi><msub><mi>P</mi><mi>i</mi></msub><mo>+</mo><mi>F</mi><msub><mi>P</mi><mi>i</mi></msub><mo>)</mo></mrow><annotation encoding="application/x-tex">TP_i/(TP_i+FP_i)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.75em;"></span><span class="strut bottom" style="height:1em;vertical-align:-0.25em;"></span><span class="base"><span class="mord mathit" style="margin-right:0.13889em;">T</span><span class="mord"><span class="mord mathit" style="margin-right:0.13889em;">P</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.31166399999999994em;"><span style="top:-2.5500000000000003em;margin-left:-0.13889em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathit mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span><span class="mord">/</span><span class="mopen">(</span><span class="mord mathit" style="margin-right:0.13889em;">T</span><span class="mord"><span class="mord mathit" style="margin-right:0.13889em;">P</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.31166399999999994em;"><span style="top:-2.5500000000000003em;margin-left:-0.13889em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathit mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span><span class="mord rule" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mord rule" style="margin-right:0.2222222222222222em;"></span><span class="mord mathit" style="margin-right:0.13889em;">F</span><span class="mord"><span class="mord mathit" style="margin-right:0.13889em;">P</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.31166399999999994em;"><span style="top:-2.5500000000000003em;margin-left:-0.13889em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathit mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span><span class="mclose">)</span></span></span></span>. It answers the question &quot;How many examples classified as <span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>i</mi></mrow><annotation encoding="application/x-tex">i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.65952em;"></span><span class="strut bottom" style="height:0.65952em;vertical-align:0em;"></span><span class="base"><span class="mord mathit">i</span></span></span></span> are really of class <span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>i</mi></mrow><annotation encoding="application/x-tex">i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.65952em;"></span><span class="strut bottom" style="height:0.65952em;vertical-align:0em;"></span><span class="base"><span class="mord mathit">i</span></span></span></span> ?&quot;</li>
+<li>The Recall index for class <span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>i</mi></mrow><annotation encoding="application/x-tex">i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.65952em;"></span><span class="strut bottom" style="height:0.65952em;vertical-align:0em;"></span><span class="base"><span class="mord mathit">i</span></span></span></span> is computed as <span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>T</mi><msub><mi>P</mi><mi>i</mi></msub><mi mathvariant="normal">/</mi><mo>(</mo><mi>T</mi><msub><mi>P</mi><mi>i</mi></msub><mo>+</mo><mi>F</mi><msub><mi>N</mi><mi>i</mi></msub><mo>)</mo></mrow><annotation encoding="application/x-tex">TP_i/(TP_i+FN_i)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.75em;"></span><span class="strut bottom" style="height:1em;vertical-align:-0.25em;"></span><span class="base"><span class="mord mathit" style="margin-right:0.13889em;">T</span><span class="mord"><span class="mord mathit" style="margin-right:0.13889em;">P</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.31166399999999994em;"><span style="top:-2.5500000000000003em;margin-left:-0.13889em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathit mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span><span class="mord">/</span><span class="mopen">(</span><span class="mord mathit" style="margin-right:0.13889em;">T</span><span class="mord"><span class="mord mathit" style="margin-right:0.13889em;">P</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.31166399999999994em;"><span style="top:-2.5500000000000003em;margin-left:-0.13889em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathit mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span><span class="mord rule" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mord rule" style="margin-right:0.2222222222222222em;"></span><span class="mord mathit" style="margin-right:0.13889em;">F</span><span class="mord"><span class="mord mathit" style="margin-right:0.10903em;">N</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.31166399999999994em;"><span style="top:-2.5500000000000003em;margin-left:-0.10903em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathit mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span><span class="mclose">)</span></span></span></span>. It answers the question &quot;Which percentage of class <span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>i</mi></mrow><annotation encoding="application/x-tex">i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.65952em;"></span><span class="strut bottom" style="height:0.65952em;vertical-align:0em;"></span><span class="base"><span class="mord mathit">i</span></span></span></span> has been correctly classified ?&quot;</li>
+<li>The Jackard index is computed as <span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>T</mi><msub><mi>P</mi><mi>i</mi></msub><mi mathvariant="normal">/</mi><mo>(</mo><mi>T</mi><msub><mi>P</mi><mi>i</mi></msub><mo>+</mo><mi>F</mi><msub><mi>N</mi><mi>i</mi></msub><mo>+</mo><mi>F</mi><msub><mi>P</mi><mi>i</mi></msub><mo>)</mo></mrow><annotation encoding="application/x-tex">TP_i/(TP_i+FN_i+FP_i)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.75em;"></span><span class="strut bottom" style="height:1em;vertical-align:-0.25em;"></span><span class="base"><span class="mord mathit" style="margin-right:0.13889em;">T</span><span class="mord"><span class="mord mathit" style="margin-right:0.13889em;">P</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.31166399999999994em;"><span style="top:-2.5500000000000003em;margin-left:-0.13889em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathit mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span><span class="mord">/</span><span class="mopen">(</span><span class="mord mathit" style="margin-right:0.13889em;">T</span><span class="mord"><span class="mord mathit" style="margin-right:0.13889em;">P</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.31166399999999994em;"><span style="top:-2.5500000000000003em;margin-left:-0.13889em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathit mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span><span class="mord rule" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mord rule" style="margin-right:0.2222222222222222em;"></span><span class="mord mathit" style="margin-right:0.13889em;">F</span><span class="mord"><span class="mord mathit" style="margin-right:0.10903em;">N</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.31166399999999994em;"><span style="top:-2.5500000000000003em;margin-left:-0.10903em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathit mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span><span class="mord rule" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mord rule" style="margin-right:0.2222222222222222em;"></span><span class="mord mathit" style="margin-right:0.13889em;">F</span><span class="mord"><span class="mord mathit" style="margin-right:0.13889em;">P</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.31166399999999994em;"><span style="top:-2.5500000000000003em;margin-left:-0.13889em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathit mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span><span class="mclose">)</span></span></span></span>. It is the index that discriminates the best neural networks on the CityScape dataset.</li>
+</ul>
+<p>The next table shows these different indicators for each class, and the obtained mean.<br>
+We can see that some classes have been learnt much better than others, despite class balancing. The 'pedestrian' class has a low recall, which mean that few pedestrian pixels are detected. On the other hand, when a pedestrian pixel is detected, it actually is a pixel of pedestrian with 62% probability.<br>
+The worse class is the class 'object', probably because it is a broad concept and there is too much diversity within the class.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Class</th>
+<th style="text-align:center">Precision</th>
+<th style="text-align:center">Recall</th>
+<th style="text-align:center">Jackard Index</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">Void</td>
+<td style="text-align:center">0.94</td>
+<td style="text-align:center">0.64</td>
+<td style="text-align:center">0.61</td>
+</tr>
+<tr>
+<td style="text-align:center">Ground</td>
+<td style="text-align:center">0.87</td>
+<td style="text-align:center">0.97</td>
+<td style="text-align:center">0.85</td>
+</tr>
+<tr>
+<td style="text-align:center">Building</td>
+<td style="text-align:center">0.78</td>
+<td style="text-align:center">0.89</td>
+<td style="text-align:center">0.71</td>
+</tr>
+<tr>
+<td style="text-align:center">Object</td>
+<td style="text-align:center">0.55</td>
+<td style="text-align:center">0.18</td>
+<td style="text-align:center">0.16</td>
+</tr>
+<tr>
+<td style="text-align:center">Nature</td>
+<td style="text-align:center">0.86</td>
+<td style="text-align:center">0.84</td>
+<td style="text-align:center">0.74</td>
+</tr>
+<tr>
+<td style="text-align:center">Sky</td>
+<td style="text-align:center">0.92</td>
+<td style="text-align:center">0.87</td>
+<td style="text-align:center">0.81</td>
+</tr>
+<tr>
+<td style="text-align:center">Human</td>
+<td style="text-align:center">0.62</td>
+<td style="text-align:center">0.27</td>
+<td style="text-align:center">0.23</td>
+</tr>
+<tr>
+<td style="text-align:center">Vehicle</td>
+<td style="text-align:center">0.74</td>
+<td style="text-align:center">0.61</td>
+<td style="text-align:center">0.50</td>
+</tr>
+<tr>
+<td style="text-align:center"><strong>Mean</strong></td>
+<td style="text-align:center">77%</td>
+<td style="text-align:center">66%</td>
+<td style="text-align:center">54%</td>
+</tr>
+</tbody>
+</table>
+<h4 class="mume-header" id="visualization">Visualization</h4>
+
+<p>The autoencoder yields better visual results than the sliding window method ! Original images have been encoded in YUV format, and then normalized by setting the luminance parameter at 0.5. We can see that the overall structure is respected, and small details are much better captured.</p>
+<img src="/projects/roadnet_images/ae_images.png">
+<blockquote>
+<p>Segmentation of two images with an AutoEncoder.</p>
+</blockquote>
+<h4 class="mume-header" id="state-of-the-art">State of the Art</h4>
+
+<p>The best network on Cityscape is ResNet-38 and obtains to this date (November 2016) a Jackard index of 91%.</p>
+<h3 class="mume-header" id="conclusion-discussion-further-work">Conclusion, Discussion, Further Work</h3>
+
+<p>That's it ! we have demonstrated how to use the sliding window method and autoencoders to perform road images segmentation. Each image takes 0.15s to process, which shows the feasibility of a real-time pedestrian detection algorithm. To build a complete tool for pedestrian detection, we could for instance scan the image with a low detection threshold. Then, we can use other algorithms to estimate their distance and their position on the road.</p>
+<p>Our network can be improved in many ways: First, the Cityscape images are labelled with 30 classes, but we chose to group them into categories and to use only 8 classes. The reason is that extracting 64*64 frames representative of a single class gets harder when the number of classes gets bigger. Frames become less relevant and the truly interesting pixels might only cover a fraction of the frame. We used the same classes for the autoencoder, for comparison purposes; however, for this model, training on the original 30 classes will improve performance, because pixels inside each class define objects that are visually closer from one another, making segmentation easier.<br>
+Furthermore, the model has been trained on 700 images, which is relatively small given the complexity of our problem. The original training set has 4 times more images, and should be used to further improve performance. Also, due to GPU constraints, we implemented a model that is relatively small compared to modern standards.</p>
+
+  </div>
+
+
+</body>
+
+<script>
+// config mermaid init call
+// http://knsv.github.io/mermaid/#configuration
+//
+// You can edit the 'MERMAID_CONFIG' variable below.
+MERMAID_CONFIG = {
+startOnLoad: false
+}
+
+if (window['MERMAID_CONFIG']) {
+window['MERMAID_CONFIG'].startOnLoad = false
+window['MERMAID_CONFIG'].cloneCssStyles = false
+}
+mermaidAPI.initialize(window['MERMAID_CONFIG'] || {})
+
+if (typeof(window['Reveal']) !== 'undefined') {
+function mermaidRevealHelper(event) {
+var currentSlide = event.currentSlide
+var diagrams = currentSlide.querySelectorAll('.mermaid')
+for (var i = 0; i < diagrams.length; i++) {
+  var diagram = diagrams[i]
+  if (!diagram.hasAttribute('data-processed')) {
+    mermaid.init(null, diagram, ()=> {
+      Reveal.slide(event.indexh, event.indexv)
+    })
+  }
+}
+}
+
+Reveal.addEventListener('slidechanged', mermaidRevealHelper)
+Reveal.addEventListener('ready', mermaidRevealHelper)
+} else {
+mermaid.init(null, document.getElementsByClassName('mermaid'))
+}
+</script>

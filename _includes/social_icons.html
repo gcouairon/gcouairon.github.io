@@ -1,7 +1,13 @@
 <!-- Social Icons -->
 <ul class="icons">
+    {%- if site.email -%}
+    <li><a href="mailto:{{- site.email -}}" class="icon fa-envelope"><span class="label">Email</span></a></li>
+    {%- endif -%}
   {%- if site.twitter_url -%}
   <li><a href="{{- site.twitter_url -}}" class="icon-b fa-twitter"><span class="label">Twitter</span></a></li>
+  {%- endif -%}
+  {%- if site.scholar_url -%}
+  <li><a href="{{- site.scholar_url -}}" class="icon"><i class="ai ai-google-scholar ai-lg"></i></a></li>
   {%- endif -%}
   {%- if site.facebook_url -%}
   <li><a href="{{- site.facebook_url -}}" class="icon-b fa-facebook-f"><span class="label">Facebook</span></a></li>
@@ -28,12 +34,12 @@
   <li><a href="{{- site.slack_url -}}" class="icon-b fa-slack-hash"><span class="label">Slack</span></a></li>
   {%- endif -%}
   {%- if site.cv_url -%}
-  <li><a href="{{- site.cv_url -}}" class="icon-b fa-cv"><span class="label">CV</span></a></li>
+  <li><a href="{{- site.cv_url -}}" class="icon-b fa-cv"><i class="ai ai-cv ai-lg"></i></a></li>
+  </i>
   {%- endif -%}
   {%- if site.dribbble_url -%}
   <li><a href="{{- site.dribbble_url -}}" class="icon-b fa-dribbble"><span class="label">Dribbble</span></a></li>
   {%- endif -%}
-  {%- if site.email -%}
-  <li><a href="mailto:{{- site.email -}}" class="icon fa-envelope"><span class="label">Email</span></a></li>
-  {%- endif -%}
+ 
+  
 </ul>

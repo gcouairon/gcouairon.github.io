@@ -49,12 +49,13 @@ facebook_url:
 googleplus_url:
 instagram_url:
 linkedin_url: https://www.linkedin.com/in/guillaume-couairon-35a814121
-github_url: https://github/com/gcouairon/
+github_url: https://github.com/gcouairon/
 stackoverflow_url:
 pinterest_url:
 slack_url:
 dribbble_url:
-cv_url: https://github/com/gcouairon/
+cv_url: assets/cv.pdf
+scholar_url: https://scholar.google.com/citations?user=O1DeDyEAAAAJ
 
 # Google Analytics Tracking ID goes here:
 google_analytics:

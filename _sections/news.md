@@ -9,7 +9,7 @@ order: 3
   a {color:#E27689;}
   </style>
 {: style="text-align: left" }
-- (Oct 2023) Presented our paper [Stable Signature](https://arxiv.org/abs/2303.15435) at ICCV 2023, also announced by Joelle Pineau on [X/Twitter](https://twitter.com/jpineau1/status/1710382118419751220) and on [Meta's website](https://ai.meta.com/blog/stable-signature-watermarking-generative-ai/)
+- (Oct 2023) Presented our paper [Stable Signature](https://arxiv.org/abs/2303.15435) at ICCV 2023, also announced by Joelle Pineau on [X/Twitter](https://twitter.com/jpineau1/status/1710382118419751220) and on [Meta's website](https://ai.meta.com/blog/stable-signature-watermarking-generative-ai/). Also proud to be recognized as an ICCV 2023 [outstanding reviewer](https://twitter.com/ICCVConference/status/1707400996228378992) !
 
 - (Sept 2023) I started a SRP position at INRIA in the [ARCHES team](https://project.inria.fr/arches/people/), working on Machine Learning for Weather and Climate.
 
